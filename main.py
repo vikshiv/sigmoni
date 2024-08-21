@@ -100,7 +100,7 @@ def signal_generator(args, signal):
         for s in signal:
             yield read(s.id, np.array(s.signal)[:4000*args.max_chunk])
 def query_reads(args):
-    fast5s = []
+    fast5s = [] # using Fast5s for now, TODO: switch to pod5 and slow5 readers
     for f in os.listdir(args.fast5):
         if f.endswith('.fast5') or f.endswith('.f5'):
             fast5s.append(signal_generator(args, Fast5Reader(os.path.join(args.fast5, f))))
