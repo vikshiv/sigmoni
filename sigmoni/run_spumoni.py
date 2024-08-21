@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import numpy as np
 from Bio import SeqIO
-import uncalled as unc
+import uncalled4 as unc
 
 def write_ref(seq, bins, fname, header=False, revcomp=False, terminator=True):
     if not os.path.isdir(os.path.dirname(fname)):

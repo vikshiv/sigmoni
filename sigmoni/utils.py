@@ -1,7 +1,7 @@
 from Bio import SeqIO
 import numpy as np
 import pandas as pd
-import uncalled as unc
+import uncalled4 as unc
 import os
 # from scipy.stats import entropy
 import re
@@ -25,8 +25,8 @@ def normalize_signal(current, poremodel, scale=None, shift=None):
     # poremodel = poremodel.to_df()
     # mean = np.mean(poremodel['mean'])
     # std = np.std(poremodel['mean'])
-    mean = poremodel.model_mean
-    std = poremodel.model_stdv
+    mean = poremodel['current.mean'].mean()
+    std = poremodel['current.mean'].std()
     scale = std / np.std(current)
     shift = mean - scale * np.mean(current)
     scaled = (current * scale) + shift
@@ -63,17 +63,17 @@ def seq_to_sig(poremodel, seq):
 
 def seq_to_kmer(poremodel, seq, revcomp=False):
     if os.path.exists(seq):
-        idx = unc.index.FastaIndex(poremodel, seq)
+        idx = unc.ref_index.FastaIndex(poremodel, seq)
         # print('loaded seq index')
         for sid in idx.infile.references:
             nt = idx.infile.fetch(sid)
             nt = re.sub('[^ACGTacgt]', '', nt)
-            kmers = model_6mer.str_to_kmers(nt).to_numpy()
+            kmers = poremodel.str_to_kmers(nt)
             if revcomp:
                 kmers = poremodel.kmer_revcomp(kmers)[::-1]
             yield sid, kmers
     else:
-        return None, model_6mer.str_to_kmers(seq).to_numpy()
+        return None, model_6mer.str_to_kmers(seq)
 
 def almost_perfect_reads(seq, poremodel):
     k = poremodel.K

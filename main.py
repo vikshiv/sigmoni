@@ -2,7 +2,7 @@ from sigmoni import utils
 from sigmoni import run_spumoni as sig
 from sigmoni.Bins import HPCBin, SigProcHPCBin
 import subprocess as proc
-from uncalled.read_index import ReadIndex
+from uncalled4.read_index import Fast5Reader
 import numpy as np
 from collections import namedtuple
 from Bio import SeqIO
@@ -10,6 +10,7 @@ import argparse
 import os, sys
 from sklearn.metrics import precision_recall_curve
 from tqdm.auto import tqdm
+import itertools
 
 read = namedtuple('read', ['id', 'signal'])
 
@@ -99,7 +100,11 @@ def signal_generator(args, signal):
         for s in signal:
             yield read(s.id, np.array(s.signal)[:4000*args.max_chunk])
 def query_reads(args):
-    seq_signal = signal_generator(args, ReadIndex(args.fast5, recursive=True))
+    fast5s = []
+    for f in os.listdir(args.fast5):
+        if f.endswith('.fast5') or f.endswith('.f5'):
+            fast5s.append(signal_generator(args, Fast5Reader(os.path.join(args.fast5, f))))
+    seq_signal = itertools.chain(*fast5s)
     readfile = os.path.join(args.output_path, args.read_prefix + '.fa')
     if not os.path.exists(readfile):
         sig.write_read_parallel(seq_signal, args.bins, evdt=utils.SIGMAP_EVDT, fname=readfile, threads=args.threads)

@@ -16,17 +16,17 @@ cargo build --release
 mv target/release/libdelta_rust.so ../../delta_rust.so
 ```
 
-Sigmoni used SPUMONI and [Uncalled4](https://github.com/skovaka/UNCALLED/tree/uncalled4) as dependencies, to perform _r_-index exact matching operations and Nanopore signal processing, respectively. See the respective Github pages for installation instructions. We recommend installing SPUMONI from source and Uncalled4 using pip.
+Sigmoni used SPUMONI and [Uncalled4](https://github.com/skovaka/uncalled4) as dependencies, to perform _r_-index exact matching operations and Nanopore signal processing, respectively. See the respective Github pages for installation instructions. We recommend installing SPUMONI from source and Uncalled4 using pip.
 
 Other python dependencies: Biopython, sklearn, pandas, numpy, tqdm. Some may be installed with Uncalled4.
 
 The provided environment file, along with installing Uncalled will create a conda environment to run Sigmoni:
 
 ```
-conda env create -f environment.yml
-# alternatively: conda create -n sigmoni python=3.9 numpy pandas scikit-learn Biopython tqdm pip
+conda create --name <env> --file environment.yml
+# alternatively: conda create --name sigmoni python scikit-learn tqdm numpy pandas Biopython pip
 conda activate sigmoni
-pip install git+https://github.com/skovaka/UNCALLED.git@uncalled4
+pip install uncalled4
 ```
 
 ## Step 1: Building an Index
@@ -39,7 +39,7 @@ python /path/to/sigmoni/index.py -p /path/to/positive_reference/*.fasta -n /path
 The command above will build a SPUMONI index over the reference files provided. Alternatively reference FASTAs can be provided as a list of paths in a file. 
 
 ## Step 2: Running Classification
-
+**Note that only the Fast5 signal format is supported for now. POD5/Slow5 support coming very soon.**
 Once the index is built, you can classify reads in a few modes:
 1. The first mode is binary classification, which optionally can use a threshold for the ratio of top hit to next best hit (`--thresh`). This threshold can be tuned in "annotation" model, where true annotations for the query reads are provided with `-a`. The annotation format is a two column tsv, where the first column lists `read_id` and the second column is either `pos_class` or `neg_class`. The output of this mode is a threshold which can be used for further classification where the true annotations are unknown.
 2. Binary classification can also be performed with the default threshold, which works well the closer to 50:50 the expected proportion of positive:negative class reads in the dataset is.

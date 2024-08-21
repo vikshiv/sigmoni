@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import uncalled as unc
+import uncalled4 as unc
 # import seaborn as sns
 # from matplotlib import pyplot as plt
 import pickle
@@ -13,20 +13,21 @@ class Bin:
         if type(poremodel) == unc.pore_model.PoreModel:
             self.poremodel = poremodel
         else:
-            self.poremodel = unc.PoreModel(df = poremodel)
+            self.poremodel = unc.PoreModel(poremodel)
+        self.poremodel_df = self.poremodel.to_df()
         self.bounds = bounds
         self.nbins = nbins
         self.clip = clip
         if clip:
-            self.clipbounds = (self.poremodel['current.mean'].min(), self.poremodel['current.mean'].max())
+            self.clipbounds = (self.poremodel_df['current.mean'].min(), self.poremodel_df['current.mean'].max())
         if fixed:
             self._get_fixed_bins()
         else:
             self._get_density_bins()
         self.nbins = len(self.starts) + 1
-        self.kmer_to_bin = np.searchsorted(self.starts, self.poremodel.means)
-        self.binmodel = [(np.mean(self.poremodel.means[np.where(self.kmer_to_bin == idx)[0]]), 
-                                    np.mean(self.poremodel.stdvs[np.where(self.kmer_to_bin == idx)[0]]))
+        self.kmer_to_bin = self.signal_to_binseq(self.poremodel_df['current.mean']).to_numpy()
+        self.binmodel = [(np.mean(self.poremodel_df['current.mean'][np.where(self.kmer_to_bin == idx)[0]]), 
+                                    np.mean(self.poremodel_df['current.stdv'][np.where(self.kmer_to_bin == idx)[0]]))
                                     for idx in range(self.nbins)]
     def _get_fixed_bins(self):
         model = self.poremodel.to_df()
@@ -64,7 +65,7 @@ class Bin:
         if evdt:
             signal = np.array(evdt.get_means(signal))
         if normalize:   
-            signal, _, _ = utils.normalize_signal(signal, self.poremodel)
+            signal, _, _ = utils.normalize_signal(signal, self.poremodel_df)
         return signal
     def bin_signal(self, signal, evdt=None, normalize=True):
         signal = np.array(signal)
@@ -88,17 +89,18 @@ class HPCBin(Bin):
         if type(poremodel) == unc.pore_model.PoreModel:
             self.poremodel = poremodel
         else:
-            self.poremodel = unc.PoreModel(df = poremodel)
+            self.poremodel = unc.PoreModel(poremodel)
+        self.poremodel_df = self.poremodel.to_df()
         self.bounds = bounds
         self.nbins = nbins
         self.clip = clip
         if clip:
-            self.clipbounds = (self.poremodel['current.mean'].min(), self.poremodel['current.mean'].max())
-        self.minc, self.maxc = self.poremodel['current.mean'].min(), self.poremodel['current.mean'].max()  
+            self.clipbounds = (self.poremodel_df['current.mean'].min(), self.poremodel_df['current.mean'].max())
+        self.minc, self.maxc = self.poremodel_df['current.mean'].min(), self.poremodel_df['current.mean'].max()  
         self.space = (self.maxc - self.minc) / self.nbins
-        self.kmer_to_bin = self.signal_to_binseq(self.poremodel['current.mean'])
-        self.binmodel = [(np.mean(self.poremodel['current.mean'][np.where(self.kmer_to_bin == idx)[0]]), 
-                                    np.mean(self.poremodel['current.stdv'][np.where(self.kmer_to_bin == idx)[0]]))
+        self.kmer_to_bin = self.signal_to_binseq(self.poremodel_df['current.mean']).to_numpy()
+        self.binmodel = [(np.mean(self.poremodel_df['current.mean'][np.where(self.kmer_to_bin == idx)[0]]), 
+                                    np.mean(self.poremodel_df['current.stdv'][np.where(self.kmer_to_bin == idx)[0]]))
                                     for idx in range(self.nbins)]
     def _hpc(self, binseq):
         return binseq[np.insert(np.diff(binseq) != 0, 0, True)]
@@ -137,7 +139,7 @@ class HPCBin(Bin):
     #     return ax
     def save_bins(self, fname):
         # save the defining variables
-        pickle.dump((self.nbins, self.poremodel.to_df()), open(fname, 'wb'))
+        pickle.dump((self.nbins, self.poremodel_df), open(fname, 'wb'))
     @classmethod
     def from_pickle(fname):
         nbins, poremodel  = pickle.load(open(fname, 'rb'))
@@ -152,5 +154,5 @@ class SigProcHPCBin(HPCBin):
         mask = pd.Series(signal).rolling(25, center=True).std().rolling(25, center=True, min_periods=1).max() > 5
         signal = signal[mask.to_numpy()]
         if normalize:   
-            signal, _, _ = utils.normalize_signal(signal, self.poremodel)
+            signal, _, _ = utils.normalize_signal(signal, self.poremodel_df)
         return signal
